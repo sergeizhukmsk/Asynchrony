@@ -11,25 +11,11 @@ API_TOKEN = '7768492314'
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
-kb = ReplyKeyboardMarkup()
-buttom_1 = KeyboardButton(text='Информация')
-buttom_2 = KeyboardButton(text='Начало')
-kb.add(buttom_1)
-kb.add(buttom_2)
-# kb.row    kb.insert
-
-
-@dp.message_handler(text='Информация')
-async def inform(message):
-    await message.answer('Информация о Боте')
-
-@dp.message_handler(text='Начало')
-async def home(message):
-    await message.answer('Начало работы с Ботом')
-
-
-async def cmd_help(message):
-    await message.answer("Напишите /help для начала.")
+buttom_1 = KeyboardButton(text='Рассчитать')
+buttom_2 = KeyboardButton(text='Информация')
+kb = ReplyKeyboardMarkup([[buttom_1, buttom_2]], resize_keyboard=True)
+# kb.add(buttom_1)
+# kb.add(buttom_2)
 
 
 class UserState(StatesGroup):
@@ -39,6 +25,11 @@ class UserState(StatesGroup):
     weight = State()
 
 
+@dp.message_handler(lambda message: message.text == 'Информация')
+async def inform(message):
+    await message.answer('Привет! Я помогу тебе рассчитать норму калорий.', reply_markup=kb)
+
+
 @dp.message_handler(commands='start')
 async def start_command(message: Message):
     await message.answer('Привет! Я помогу тебе рассчитать норму калорий.')
@@ -46,7 +37,7 @@ async def start_command(message: Message):
     await UserState.gender.set()
 
 
-@dp.message_handler(lambda message:message.text == 'Calories')
+@dp.message_handler(lambda message: message.text == 'Рассчитать')
 async def set_age(message: types.Message):
     await message.answer('Привет! Я помогу тебе рассчитать норму калорий.')
     await message.answer('Введите Ваш пол: 1 - Мужской; 2 - Женский', reply_markup=kb)
@@ -141,4 +132,3 @@ async def send_calories(data, message: Message, state: FSMContext):
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
-
