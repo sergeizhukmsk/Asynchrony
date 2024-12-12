@@ -5,31 +5,24 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
 from aiogram.types import Message
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import asyncio
 
-API_TOKEN = '7768492314:AAEVD5xBKLUsVBe6PxgEqKFU2lwHEk-Ixlk'
+API_TOKEN = '7900008680'
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
-kb = ReplyKeyboardMarkup()
-buttom_1 = KeyboardButton(text='Информация')
-buttom_2 = KeyboardButton(text='Начало')
-kb.add(buttom_1)
-kb.add(buttom_2)
-# kb.row    kb.insert
+buttom_1 = KeyboardButton(text='Рассчитать')
+buttom_2 = KeyboardButton(text='Информация')
+kb_repl = ReplyKeyboardMarkup([[buttom_1, buttom_2]], resize_keyboard=True)
+# kb_repl.add(buttom_1)
+# kb_repl.add(buttom_2)
 
-
-@dp.message_handler(text='Информация')
-async def inform(message):
-    await message.answer('Информация о Боте')
-
-@dp.message_handler(text='Начало')
-async def home(message):
-    await message.answer('Начало работы с Ботом')
-
-
-async def cmd_help(message):
-    await message.answer("Напишите /help для начала.")
+kb_inline = InlineKeyboardMarkup()
+buttom_1 = InlineKeyboardButton(text='Рассчитать норму калорий', callback_data='calories')
+buttom_2 = InlineKeyboardButton(text='Формулы расчёта', callback_data='formulas')
+kb_inline.add(buttom_1)
+kb_inline.add(buttom_2)
 
 
 class UserState(StatesGroup):
@@ -39,18 +32,40 @@ class UserState(StatesGroup):
     weight = State()
 
 
+@dp.message_handler(lambda message: message.text == 'Информация')
+async def inform(message):
+    await message.answer('Программа рассчета нормы калорий, исходя из вашего пола, возраста, роста и веса.')
+
+
 @dp.message_handler(commands='start')
 async def start_command(message: Message):
-    await message.answer('Привет! Я помогу тебе рассчитать норму калорий.')
-    await message.answer('Введите Ваш пол: 1 - Мужской; 2 - Женский', reply_markup=kb)
-    await UserState.gender.set()
+    await message.answer('Привет! Я помогу тебе рассчитать норму калорий.', reply_markup=kb_repl)
 
 
-@dp.message_handler(lambda message:message.text == 'Calories')
-async def set_age(message: types.Message):
-    await message.answer('Привет! Я помогу тебе рассчитать норму калорий.')
-    await message.answer('Введите Ваш пол: 1 - Мужской; 2 - Женский', reply_markup=kb)
+@dp.message_handler(lambda message: message.text == 'Рассчитать') # main_menu
+async def main_menu(message: types.Message):
+    await message.answer('Выберите опцию:', reply_markup=kb_inline)
+
+
+@dp.callback_query_handler(lambda query: query.data == 'calories')
+async def get_callback_button(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(callback_query.from_user.id, 'Вы выбрали расчет нормы калорий.')
+    await bot.send_message(callback_query.from_user.id, 'Введите Ваш пол: 1 - Мужской; 2 - Женский')
     await UserState.gender.set()
+
+@dp.callback_query_handler(lambda query: query.data == 'formulas')
+async def get_formulas(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(callback_query.from_user.id, 'Вы выбрали формулы расчёта.')
+    formula = (
+        "Формула Миффлина-Сан Жеора:\n\n"
+        "Для мужчин:\n"
+        "BMR = 10 * вес(кг) + 6.25 * рост(см) - 5 * возраст(лет) + 5\n\n"
+        "Для женщин:\n"
+        "BMR = 10 * вес(кг) + 6.25 * рост(см) - 5 * возраст(лет) - 161"
+    )
+    await bot.send_message(callback_query.from_user.id, formula)  # Отправляем формулу в ответ
 
 
 @dp.message_handler(state=UserState.gender)
@@ -141,4 +156,3 @@ async def send_calories(data, message: Message, state: FSMContext):
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
-
